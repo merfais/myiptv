@@ -1,3 +1,4 @@
+const path =require('path')
 const fs = require('fs')
 const pinyin = require('pinyin')
 const _ = require('lodash')
@@ -22,7 +23,7 @@ function getMap(data) {
     const info = list[i]
     const url = list[i + 1]
     const [, name] = info.split(',')
-    if (!name || /offline/i.test(name)) {
+    if (!name || /offline|\[not/i.test(name)) {
       i += 2
       continue
     }
@@ -59,7 +60,7 @@ function sortByList(by, data) {
 
 const weishiList = [
   '湖南卫视', '浙江卫视', '江苏卫视', '上海卫视', '东方卫视', '北京卫视',
-  '北京卫视 [Not 24/7]', '天津卫视', '深圳卫视', '凤凰', 'TVB', '湖北卫视', '河北卫视',
+  '天津卫视', '深圳卫视', '湖北卫视', '河北卫视',
   '河南卫视', '东南卫视', '江西卫视', '云南卫视', '辽宁卫视', '吉林卫视',
   '黑龙卫视', '黑龙江卫视', '四川卫视', '重庆卫视', '广东卫视', '广西卫视',
   '宁夏卫视', '安徽卫视', '山东卫视', '山西卫视', '西藏卫视', '贵州卫视',
@@ -149,15 +150,42 @@ function write(path, data) {
   })
 }
 
+function getDate() {
+  const n = new Date()
+  const toStr = num => num < 10 ? `0${num}` : num
+  return toStr(n.getFullYear())
+    + toStr((n.getMonth() + 1))
+    + toStr(n.getDate())
+    + '_'
+    + toStr(n.getHours())
+    + toStr(n.getMinutes())
+    + toStr(n.getSeconds())
+}
 
-module.exports = async function main(filePath) {
-  const data = await read(filePath)
+function mkdir(tmp) {
+  const filePath = path.join(__dirname, tmp)
+  return new Promise((res, rej) => {
+    fs.mkdir(filePath, (err) => {
+      if (err) {
+        rej(err)
+      } else {
+        res(filePath)
+      }
+    })
+  })
+}
+
+module.exports = async function main() {
+  const sourceFile = path.join(__dirname, './iptv/countries/cn.m3u')
+  const data = await read(sourceFile)
   const map = getMap(data)
-  await write('all.json', JSON.stringify(map, null, 2))
+  const date = getDate()
+  const tmpPath = await mkdir(`tmp_${date}`)
+  await write(path.join(tmpPath, 'all.json'), JSON.stringify(map, null, 2))
   const names = pickName(map)
-  await write('./name.txt', names)
+  await write(path.join(tmpPath, './name.txt'), names)
   const list = pick(map)
-  await write('./sorted.txt', list.map(arr => [...arr, '-----------'].join('\n')))
+  await write(path.join(tmpPath, './sorted.txt'), list.map(arr => [...arr, '-----------\n'].join('\n')))
   const str = pickFirst(list, map)
-  await write('./out.m3u', str)
+  await write(path.join(tmpPath, `./out_${date}.m3u`), str)
 }

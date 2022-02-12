@@ -1,0 +1,4 @@
+[submodule "iptv"]
+	path = iptv
+	url = git@github.com:iptv-org/iptv.git
+	branch = gh-pages

@@ -5,6 +5,7 @@ package-lock.json
 /nodejs/node_modules
 /nodejs/public
 /build/lib
+tmp_*
 
 
 # local env files
