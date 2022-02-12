@@ -14,6 +14,23 @@ function read(path) {
     })
   })
 }
+const cctvNameMap = {
+  'CCTV-1综合': 'CCTV1',
+  'CCTV-2财经': 'CCTV2',
+  'CCTV-3综艺': 'CCTV3',
+  'CCTV-4中文国际': 'CCTV4',
+  'CCTV-5+体育赛事': 'CCTV5+',
+  'CCTV-5体育': 'CCTV5',
+  'CCTV-6电影': 'CCTV6',
+  'CCTV-7国防军事': 'CCTV7',
+  'CCTV-8电视剧': 'CCTV8',
+  'CCTV-9纪录': 'CCTV9',
+  'CCTV-10科教': 'CCTV10',
+  'CCTV-11戏曲': 'CCTV11',
+  'CCTV-12社会与法制': 'CCTV12',
+  'CCTV-13新闻': 'CCTV13',
+  'CCTV-17农业农村': 'CCTV17',
+}
 
 function getMap(data) {
   const list = data.split('\n')
@@ -22,13 +39,17 @@ function getMap(data) {
   while (i < list.length) {
     const info = list[i]
     const url = list[i + 1]
-    const [, name] = info.split(',')
+    const infoArr = info.split(',')
+    const [preInfo, name] = infoArr
     if (!name || /offline|\[not/i.test(name)) {
       i += 2
       continue
     }
+    let [shortName] = name.split(' (')
+    shortName = cctvNameMap[shortName] || shortName
+    const shortInfo = [preInfo, shortName].join()
     map[name] = map[name] || []
-    map[name].push({ url, info })
+    map[name].push({ url, info, shortName, shortInfo })
     i += 2
   }
   return map
@@ -37,7 +58,8 @@ function getMap(data) {
 function pickFirst(list, map) {
   return _.flatten(list).reduce((acc, key) => {
     const item = map[key][0]
-    acc.push(item.info, item.url)
+    // console.log(key, item, '-----\n')
+    acc.push(item.shortInfo, item.url)
     return acc
   }, []).join('\n')
 }
@@ -103,10 +125,10 @@ function pick(map) {
     } else if (cityReg.test(name)) {
       const [key] = name.match(cityReg)
       acc.city.push({ name, key })
-    } else if (/卫视/.test(name)) {
-      acc.weishi2.push(name)
-    } else if (enReg.test(name)) {
-      acc.en.push(name)
+    // } else if (/卫视/.test(name)) {
+    //   acc.weishi2.push(name)
+    // } else if (enReg.test(name)) {
+    //   acc.en.push(name)
     } else {
       acc.other.push(name)
     }
@@ -115,11 +137,11 @@ function pick(map) {
     city: [],
     other: [],
     weishi1: [],
-    weishi2: [],
+    // weishi2: [],
     cctv: [],
     ying1: [],
     ying2: [],
-    en: [],
+    // en: [],
   })
   const city = sortByList(cityList, set.city)
   const weishi = sortByList(weishiList, set.weishi1)
@@ -131,14 +153,15 @@ function pick(map) {
     weishi,
     ying1,
     ying2,
-    set.en,
+    // set.en,
     city,
-    set.weishi2,
+    // set.weishi2,
     other,
   ]
 }
 
 function write(path, data) {
+  // return
   return new Promise((res, rej) => {
     fs.writeFile(path, `\ufeff${data}`, (err) => {
       if (err) {
@@ -187,5 +210,6 @@ module.exports = async function main() {
   const list = pick(map)
   await write(path.join(tmpPath, './sorted.txt'), list.map(arr => [...arr, '-----------\n'].join('\n')))
   const str = pickFirst(list, map)
+  // console.log(str)
   await write(path.join(tmpPath, `./out_${date}.m3u`), str)
 }

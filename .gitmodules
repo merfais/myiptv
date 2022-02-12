@@ -2,3 +2,6 @@
 	path = iptv
 	url = git@github.com:iptv-org/iptv.git
 	branch = gh-pages
+[submodule "iptv-checker"]
+	path = iptv-checker
+	url = git@github.com:freearhey/iptv-checker.git
